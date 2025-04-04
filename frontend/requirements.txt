@@ -1,0 +1,4 @@
+# frontend/requirements.txt
+streamlit
+requests
+python-dotenv # <-- ADD THIS LINE if it's missing
