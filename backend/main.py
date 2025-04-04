@@ -3,7 +3,7 @@ import os
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware # Import CORS
 from pydantic import BaseModel
-from openai import OpenAI
+# from openai import OpenAI
 from supabase import create_client, Client
 from dotenv import load_dotenv
 import google.generativeai as genai
@@ -13,19 +13,20 @@ import google.generativeai as genai
 load_dotenv(dotenv_path='../.env') # Adjust path if .env is elsewhere
 
 # --- Environment Variables & Configuration ---
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+# OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-genai.configure(api_key=GOOGLE_API_KEY, transport='rest')
+# genai.configure(api_key=GOOGLE_API_KEY, transport='rest')
 
-if not all([OPENAI_API_KEY, SUPABASE_URL, SUPABASE_KEY]):
+if not all([GOOGLE_API_KEY, SUPABASE_URL, SUPABASE_KEY]):
     raise ValueError("Missing required environment variables (OpenAI Key, Supabase URL/Key)")
 
 # --- Initialize Clients ---
 try:
-    openai_client = OpenAI(api_key=OPENAI_API_KEY)
+    # openai_client = OpenAI(api_key=OPENAI_API_KEY)
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+    genai.configure(api_key=GOOGLE_API_KEY, transport='rest')
 except Exception as e:
     raise RuntimeError(f"Failed to initialize clients: {e}")
 
