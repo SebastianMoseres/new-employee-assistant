@@ -10,7 +10,12 @@ from dotenv import load_dotenv
 # --- Configuration ---
 # Use localhost when running backend locally.
 # IMPORTANT: Update this to your deployed backend URL for Day 3!
-BACKEND_URL = os.getenv("BACKEND_API_URL", "http://127.0.0.1:8000/ask")
+
+
+# BACKEND_URL = os.getenv("BACKEND_API_URL", "http://127.0.0.1:8000/ask")
+
+
+BACKEND_URL = "https://onboarding-assistant-backend.onrender.com"
 
 # --- Custom Theme Configuration ---
 st.set_page_config(
