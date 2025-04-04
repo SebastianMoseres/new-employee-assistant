@@ -38,6 +38,7 @@ app = FastAPI()
 origins = [
     "http://localhost",
     "http://localhost:8501", # Default Streamlit port
+    "https://new-employee-assistant.streamlit.app",
     # Add your Streamlit Cloud app URL here when deployed
     # e.g., "https://your-streamlit-app-name.streamlit.app" 
 ]
