@@ -2,7 +2,7 @@
 import streamlit as st
 import requests
 import os
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 
 # Load env vars if needed (e.g., for BACKEND_URL if deployed)
 # load_dotenv(dotenv_path='../.env')
@@ -12,7 +12,56 @@ from dotenv import load_dotenv
 # IMPORTANT: Update this to your deployed backend URL for Day 3!
 
 # BACKEND_URL = os.getenv("BACKEND_API_URL", "http://127.0.0.1:8000/ask")
-BACKEND_URL = os.getenv("BACKEND_API_URL", "https://onboarding-assistant-backend.onrender.com/ask")
+BACKEND_BASE_URL = st.secrets.get("BACKEND_API_URL_BASE", "http://127.0.0.1:8000")
+
+# Construct *all* specific endpoints from the base URL
+ASK_ENDPOINT = f"{BACKEND_BASE_URL}/ask"
+CONTEXT_ENDPOINT = f"{BACKEND_BASE_URL}/context"
+
+# --- Helper Function to Get Context ---
+def get_current_context():
+    try:
+        # Use the correctly constructed CONTEXT_ENDPOINT
+        response = requests.get(CONTEXT_ENDPOINT, timeout=10)
+        response.raise_for_status()
+        return response.json().get("context", "Error fetching context.")
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error fetching current context: {e}")
+        return "Could not fetch context from server."
+    except Exception as e:
+        st.error(f"An unexpected error occurred fetching context: {e}")
+        return "Error fetching context."
+
+# --- Sidebar for Context Management ---
+st.sidebar.title("⚙️ Manage Context")
+st.sidebar.caption("Paste the full company context document here.")
+
+current_context_from_db = get_current_context() # Fetch context on load/reload
+new_context_input = st.sidebar.text_area(
+    "Company Context:",
+    value=current_context_from_db,
+    height=400,
+    key="context_editor" # Use a key to maintain state if needed
+)
+
+if st.sidebar.button("Update Context"):
+    if new_context_input:
+        try:
+            payload = {"new_context": new_context_input}
+            response = requests.post(CONTEXT_ENDPOINT, json=payload, timeout=20)
+            response.raise_for_status()
+            st.sidebar.success("Context updated successfully!")
+            # Optional: Rerun to refresh the text area immediately, though Streamlit might do it
+            # st.experimental_rerun() # Use st.rerun() in newer Streamlit versions
+            st.rerun()
+        except requests.exceptions.RequestException as e:
+            st.sidebar.error(f"Error updating context: {e}")
+        except Exception as e:
+             st.sidebar.error(f"An unexpected error occurred: {e}")
+    else:
+        st.sidebar.warning("Context cannot be empty.")
+
+st.sidebar.markdown("---") # Separator
 
 # --- Custom Theme Configuration ---
 st.set_page_config(

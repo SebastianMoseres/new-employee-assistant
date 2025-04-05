@@ -102,6 +102,17 @@ async def ask_question(request: QuestionRequest):
     if not user_question:
         raise HTTPException(status_code=400, detail="Question cannot be empty")
 
+    current_context = "No company context has been provided yet." # Default
+
+    try:
+        context_data, count = supabase.table('company_context').select('content').order('id', desc=True).limit(1).single().execute()
+        if context_data and 'content' in context_data:
+            current_context = context_data['content']
+        else:
+             print("No context found in database for /ask endpoint.")
+    except Exception as db_error:
+         print(f"Error fetching context for /ask: {db_error}. Using default.")
+
     try:
         # Construct the prompt for OpenAI
         prompt = f"""
@@ -170,3 +181,52 @@ async def get_history():
     except Exception as e:
         print(f"Error fetching history: {e}")
         raise HTTPException(status_code=500, detail=f"Could not fetch history: {e}")
+
+@app.get("/context")
+async def get_context():
+    try:
+        # Fetch the LATEST context entry (assuming only one, or the most recent)
+        # If you only ever have ONE row, you could filter by id=1
+        # Or order by updated_at desc and limit 1
+        data, count = supabase.table('company_context').select('content').order('id', desc=True).limit(1).single().execute()
+        # .single() returns just the one object or raises an error if not exactly one found (or null if 0)
+
+        if data and 'content' in data:
+            return {"context": data['content']}
+        else:
+            # Handle case where no context is found in DB yet
+            print("No context found in database.")
+            return {"context": "No company context has been provided yet."}
+    except Exception as e:
+        print(f"Error fetching context: {e}")
+        raise HTTPException(status_code=500, detail=f"Could not fetch context: {e}")
+    
+
+
+class ContextUpdateRequest(BaseModel):
+    new_context: str
+
+@app.post("/context")
+async def update_context(request: ContextUpdateRequest):
+    new_content = request.new_context
+    if not new_content:
+        raise HTTPException(status_code=400, detail="New context cannot be empty")
+
+    try:
+        # Option 1: Update a specific row (if you always use id=1)
+        # data, count = supabase.table('company_context').update({'content': new_content}).eq('id', 1).execute()
+
+        # Option 2: Upsert - Update row 1 if it exists, otherwise insert it. Good default.
+        # Ensure 'id' is set as the primary key in your Supabase table UI.
+        data, count = supabase.table('company_context').upsert({'id': 1, 'content': new_content}).execute()
+
+        # You might need error checking here based on 'data' or 'count' if needed
+
+        print(f"Context updated successfully.")
+        return {"message": "Context updated successfully"}
+    except Exception as e:
+        print(f"Error updating context: {e}")
+        raise HTTPException(status_code=500, detail=f"Could not update context: {e}")
+
+# IMPORTANT: Add authentication/authorization here in a real app!
+# Only allow admins to call this endpoint.
