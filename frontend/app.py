@@ -9,7 +9,13 @@ import os
 
 # --- Configuration ---
 # Use localhost when running backend locally.
-# IMPORTANT: Update this to your deployed backend URL for Day 3!
+
+st.set_page_config(
+    page_title="AI Onboarding Assistant",
+    page_icon="🤖",
+    layout="centered",
+    initial_sidebar_state="auto"
+)
 
 # BACKEND_URL = os.getenv("BACKEND_API_URL", "http://127.0.0.1:8000/ask")
 BACKEND_BASE_URL = st.secrets.get("BACKEND_API_URL_BASE", "http://127.0.0.1:8000")
@@ -32,14 +38,22 @@ def get_current_context():
         st.error(f"An unexpected error occurred fetching context: {e}")
         return "Error fetching context."
 
+
 # --- Sidebar for Context Management ---
 st.sidebar.title("⚙️ Manage Context")
 st.sidebar.caption("Paste the full company context document here.")
 
 current_context_from_db = get_current_context() # Fetch context on load/reload
+
+if current_context_from_db.startswith("Error:"):
+    st.sidebar.warning(current_context_from_db) # Display warning in sidebar
+    context_value_for_textarea = "" # Provide empty default for text area
+else:
+    context_value_for_textarea = current_context_from_db
+
 new_context_input = st.sidebar.text_area(
     "Company Context:",
-    value=current_context_from_db,
+    value=context_value_for_textarea,
     height=400,
     key="context_editor" # Use a key to maintain state if needed
 )
@@ -64,12 +78,7 @@ if st.sidebar.button("Update Context"):
 st.sidebar.markdown("---") # Separator
 
 # --- Custom Theme Configuration ---
-st.set_page_config(
-    page_title="AI Onboarding Assistant",
-    page_icon="🤖",
-    layout="centered",
-    initial_sidebar_state="auto"
-)
+
 
 # Custom CSS
 st.markdown("""
