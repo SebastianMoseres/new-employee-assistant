@@ -122,7 +122,7 @@ async def ask_question(request: QuestionRequest):
 
         Company Context:
         ---
-        {COMPANY_CONTEXT}
+        {current_context}
         ---
 
         Question: {user_question}
