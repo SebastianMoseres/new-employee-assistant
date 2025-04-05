@@ -25,31 +25,103 @@ st.set_page_config(
 # Custom CSS
 st.markdown("""
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    
+    html, body, [class*="st-"] {
+        font-family: 'Inter', sans-serif;
+    }
+    
     .stApp {
-        background-color: #1a1a1a;
+        background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+        min-height: 100vh;
     }
+    
     .stChatMessage {
-        background-color: #2d2d2d;
-        border-radius: 10px;
-        padding: 1rem;
-        margin: 0.5rem 0;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        background-color: rgba(45, 45, 45, 0.8);
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        padding: 1.2rem;
+        margin: 0.8rem 0;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s ease;
     }
+    
+    .stChatMessage:hover {
+        transform: translateY(-2px);
+    }
+    
     .stChatMessage p, .stChatMessage div {
         color: #ffffff;
+        line-height: 1.6;
     }
+    
     .stButton>button {
-        background-color: #0d6efd;
+        background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
         color: white;
-        border-radius: 5px;
-        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        padding: 0.7rem 1.5rem;
         border: none;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
+    
     .stButton>button:hover {
-        background-color: #0b5ed7;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
     }
+    
     h1, h2, h3 {
         color: #ffffff;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+    
+    h1 {
+        font-size: 2.5rem;
+        background: linear-gradient(135deg, #ffffff 0%, #a0a0a0 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 0.5rem;
+    }
+    
+    h2 {
+        font-size: 1.8rem;
+        color: #e0e0e0;
+    }
+    
+    .stTextInput>div>div>input {
+        background-color: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        color: white;
+        padding: 0.8rem 1rem;
+    }
+    
+    .stTextInput>div>div>input:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
+    }
+    
+    .stSpinner>div {
+        border-color: #0d6efd;
+    }
+    
+    .stMarkdown {
+        margin-bottom: 1.5rem;
+    }
+    
+    .stMarkdown p {
+        color: #e0e0e0;
+        line-height: 1.6;
+    }
+    
+    .stMarkdown strong {
+        color: #ffffff;
+    }
+    
+    .stMarkdown em {
+        color: #a0a0a0;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -60,8 +132,10 @@ st.markdown("### Your Personal Guide to Company Policies")
 st.markdown("Ask questions about **Company Policies** below.")
 st.markdown("*Please be specific for best results.*")
 
-# Add a divider
-st.markdown("---")
+# Add a stylish divider
+st.markdown("""
+    <div style="height: 2px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent); margin: 2rem 0;"></div>
+    """, unsafe_allow_html=True)
 
 # Initialize chat history in session state if it doesn't exist
 if 'messages' not in st.session_state:
