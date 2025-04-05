@@ -1,32 +1,29 @@
 # backend/main.py
 import os
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.middleware.cors import CORSMiddleware # Import CORS
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-# from openai import OpenAI
 from supabase import create_client, Client
 from dotenv import load_dotenv
 import google.generativeai as genai
 
-
-# Load environment variables from .env file
-load_dotenv(dotenv_path='../.env') # Adjust path if .env is elsewhere
+# Load environment variables from .env file (only affects local run)
+load_dotenv(dotenv_path='../.env')
 
 # --- Environment Variables & Configuration ---
-# OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY") # Use SERVICE_ROLE key
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-# genai.configure(api_key=GOOGLE_API_KEY, transport='rest')
 
+# Validate essential variables
 if not all([GOOGLE_API_KEY, SUPABASE_URL, SUPABASE_KEY]):
-    raise ValueError("Missing required environment variables (OpenAI Key, Supabase URL/Key)")
+    raise ValueError("Missing required environment variables (Google Key, Supabase URL/Key)")
 
 # --- Initialize Clients ---
 try:
-    # openai_client = OpenAI(api_key=OPENAI_API_KEY)
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-    genai.configure(api_key=GOOGLE_API_KEY, transport='rest')
+    # Configure Gemini client (ensure transport='rest' if needed, usually not required)
+    genai.configure(api_key=GOOGLE_API_KEY)
 except Exception as e:
     raise RuntimeError(f"Failed to initialize clients: {e}")
 
@@ -34,60 +31,26 @@ except Exception as e:
 app = FastAPI()
 
 # --- CORS Configuration ---
-# Allow requests from Streamlit local dev and deployed app (adjust if needed)
 origins = [
     "http://localhost",
-    "http://localhost:8501", # Default Streamlit port
-    "https://new-employee-assistant.streamlit.app",
-    # Add your Streamlit Cloud app URL here when deployed
-    # e.g., "https://your-streamlit-app-name.streamlit.app" 
+    "http://localhost:8501",
+    "https://new-employee-assistant.streamlit.app", # Your deployed frontend URL
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,  # Allows specified origins
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],    # Allows all methods (GET, POST, etc.)
-    allow_headers=["*"],    # Allows all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-
-# --- Hardcoded Company Context (Replace with your sample data) ---
-COMPANY_CONTEXT = """
-Welcome Aboard!
-
-We’re thrilled to have you join the team! Here’s everything you need to know to get started:
-
-Time Off & Vacation (PTO):
-You get 20 days of Paid Time Off (PTO) annually. PTO starts building from day one, and you’ll see it accrue monthly. If you’re planning a trip, please submit your request for time off 2 weeks in advance via the HR portal. You can carry over up to 5 unused days to the next year.
-
-Remote Work & Flexibility:
-We’re all about work-life balance! Remote work is available for most roles, but please check in with your manager to confirm eligibility. To ensure success while working remotely, please maintain a quiet, dedicated workspace and a reliable internet connection. Our core collaboration hours are 10 AM to 4 PM in your local time zone. Please ensure availability for team sync-ups during these hours.
-
-Tech Setup & IT Support:
-You’ll receive a company laptop as your primary tool to get started. If you need assistance, our IT team is here to help. Simply submit a ticket via the IT Helpdesk Portal or email support@company.com. VPN setup instructions and other helpful tech guides are available on the Company Intranet (link provided during onboarding).
-
-Our Mission & Values:
-Our core mission is to “revolutionize the tech industry through innovation, transparency, and collaboration.”
-We value:
-	•	Customer Obsession: We are always focused on solving our customers’ problems.
-	•	Bias for Action: We believe in making fast decisions and iterating quickly.
-	•	Teamwork: We succeed when we collaborate and support one another.
-
-Perks & Culture:
-We work hard and have fun! Enjoy free snacks and coffee in the office, a monthly remote work stipend, and regular team lunches. Keep an eye out for announcements about our monthly virtual game nights, Friday team socials, and occasional wellness events to help balance work and relaxation.
-
-Key Tools We Use:
-	•	Communication: Slack is our primary platform for all team communication and daily updates.
-	•	Project Management: We track most work in Jira and use Asana for individual task management.
-	•	Documentation: Our knowledge base and documentation are stored in Confluence.
-
-Remember: This AI assistant’s knowledge is based on this document. For specific personal questions or complex issues, please reach out to your manager or HR.
-"""
-
-# --- Pydantic Model for Request Body ---
+# --- Pydantic Models ---
 class QuestionRequest(BaseModel):
     question: str
+
+class ContextUpdateRequest(BaseModel):
+    new_context: str
 
 # --- API Endpoints ---
 @app.get("/")
@@ -97,35 +60,35 @@ async def root():
 @app.post("/ask")
 async def ask_question(request: QuestionRequest):
     user_question = request.question
-    print(f"Received question: {user_question}") # For debugging
+    print(f"Received question: {user_question}")
 
     if not user_question:
         raise HTTPException(status_code=400, detail="Question cannot be empty")
 
-    current_context = "No company context has been provided yet." # Default
+    current_context = "Default context: No specific company context was loaded from the database." # Default
 
     try:
-        context_data, count = supabase.table('company_context').select('content').order('id', desc=True).limit(1).single().execute()
-        if context_data and 'content' in context_data:
-            current_context = context_data['content']
+        # Fetch context reliably, targeting id=1 as set by upsert
+        response = supabase.table('company_context').select('content').eq('id', 1).single().execute()
+        print(f"DEBUG: Context fetch response object: {response}") # Debug print
+
+        # Check response structure carefully
+        if response.data and isinstance(response.data, dict) and 'content' in response.data:
+            current_context = response.data['content']
+            print("DEBUG: Successfully extracted context from DB.")
         else:
-             print("No context found in database for /ask endpoint.")
+            print(f"WARN: Context data not found or in unexpected format in /ask. Data: {response.data if hasattr(response, 'data') else 'N/A'}")
     except Exception as db_error:
-         print(f"Error fetching context for /ask: {db_error}. Using default.")
+        print(f"ERROR: Exception fetching context for /ask: {db_error}. Using default.")
 
     try:
-        # Construct the prompt for OpenAI
+        # Construct the prompt using the fetched context
         prompt = f"""
         You are an AI onboarding assistant for a new employee.
-        Answer the following question based *only* on the provided company context.
+        Answer the following question based *only* on the provided company context below.
         If the answer cannot be found in the context, clearly state that you don't have that information based on the provided documents.
 
-        # Company Context:
-        # ---
-        # {COMPANY_CONTEXT}
-        # ---
-
-        Current Context:
+        Company Context:
         ---
         {current_context}
         ---
@@ -134,82 +97,44 @@ async def ask_question(request: QuestionRequest):
 
         Answer:
         """
-        # Choose the Gemini model
-        model = genai.GenerativeModel('gemini-1.5-pro') # Updated model name
+        # Choose the Gemini model (ensure this model name is available/correct)
+        model = genai.GenerativeModel('gemini-1.5-pro') # Or 'gemini-1.0-pro'
 
-        # Construct prompt differently if needed, Gemini prefers direct instruction
-        # Ensure your prompt structure works well with Gemini
-        # prompt = f"""Context: {COMPANY_CONTEXT}\n\nQuestion: {user_question}\n\nAnswer based only on context:"""
+        ai_response = model.generate_content(prompt)
+        ai_answer = ai_response.text.strip()
 
-        response = model.generate_content(prompt)
-        ai_answer = response.text.strip()
-
-
-        # Call OpenAI API
-
-        # response = openai_client.chat.completions.create(
-        #     model="gpt-3.5-turbo", # Or "gpt-4" if you prefer
-        #     messages=[
-        #         {"role": "system", "content": "You are a helpful onboarding assistant."},
-        #         {"role": "user", "content": prompt}
-        #     ],
-        #     max_tokens=150, # Limit response length
-        #     temperature=0.5 # Adjust creativity vs factualness
-        # )
-
-        # ai_answer = response.choices[0].message.content.strip()
-        # print(f"AI Answer: {ai_answer}") # For debugging
-
-        # Log question and answer to Supabase (optional but good practice)
+        # Log question and answer to Supabase qa_log table
         try:
-            data, count = supabase.table('qa_log').insert({
+            log_res = supabase.table('qa_log').insert({
                 "question": user_question,
                 "answer": ai_answer
             }).execute()
-            print(f"Logged to Supabase: {data}, {count}") # For debugging
-        except Exception as db_error:
-            print(f"Error logging to Supabase: {db_error}")
-            # Don't fail the request if logging fails, just report it
+            # Optional: Check log_res if needed
+        except Exception as db_log_error:
+            print(f"Error logging Q&A to Supabase: {db_log_error}")
 
         return {"answer": ai_answer}
 
     except Exception as e:
-        print(f"Error processing question: {e}")
-        raise HTTPException(status_code=500, detail=f"An error occurred: {e}")
-
-# --- (Optional) Endpoint to view logs ---
-@app.get("/history")
-async def get_history():
-    try:
-        data, count = supabase.table('qa_log').select('*').order('created_at', desc=True).limit(10).execute()
-        return {"history": data[1]} # data is a tuple (response_status, actual_data)
-    except Exception as e:
-        print(f"Error fetching history: {e}")
-        raise HTTPException(status_code=500, detail=f"Could not fetch history: {e}")
+        # Catch errors during Gemini call or other processing
+        print(f"Error processing question with AI: {e}")
+        raise HTTPException(status_code=500, detail=f"An error occurred processing the question: {e}")
 
 @app.get("/context")
 async def get_context():
     try:
-        # Fetch the LATEST context entry (assuming only one, or the most recent)
-        # If you only ever have ONE row, you could filter by id=1
-        # Or order by updated_at desc and limit 1
-        data, count = supabase.table('company_context').select('content').order('id', desc=True).limit(1).single().execute()
-        # .single() returns just the one object or raises an error if not exactly one found (or null if 0)
+        # Fetch context reliably, targeting id=1
+        response = supabase.table('company_context').select('content').eq('id', 1).single().execute()
+        print(f"DEBUG (/context GET): Supabase context fetch response: {response}") # Debug print
 
-        if data and 'content' in data:
-            return {"context": data['content']}
+        if response.data and isinstance(response.data, dict) and 'content' in response.data:
+            return {"context": response.data['content']}
         else:
-            # Handle case where no context is found in DB yet
-            print("No context found in database.")
-            return {"context": "No company context has been provided yet."}
+            print("WARN (/context GET): Context data not found or in unexpected format.")
+            return {"context": "No company context has been set yet."}
     except Exception as e:
-        print(f"Error fetching context: {e}")
+        print(f"ERROR (/context GET): Exception fetching context: {e}")
         raise HTTPException(status_code=500, detail=f"Could not fetch context: {e}")
-    
-
-
-class ContextUpdateRequest(BaseModel):
-    new_context: str
 
 @app.post("/context")
 async def update_context(request: ContextUpdateRequest):
@@ -218,20 +143,20 @@ async def update_context(request: ContextUpdateRequest):
         raise HTTPException(status_code=400, detail="New context cannot be empty")
 
     try:
-        # Option 1: Update a specific row (if you always use id=1)
-        # data, count = supabase.table('company_context').update({'content': new_content}).eq('id', 1).execute()
+        # Upsert ensures row with id=1 is created or updated
+        response = supabase.table('company_context').upsert({'id': 1, 'content': new_content}).execute()
+        print(f"Context update response: {response}") # Debug print
 
-        # Option 2: Upsert - Update row 1 if it exists, otherwise insert it. Good default.
-        # Ensure 'id' is set as the primary key in your Supabase table UI.
-        data, count = supabase.table('company_context').upsert({'id': 1, 'content': new_content}).execute()
-
-        # You might need error checking here based on 'data' or 'count' if needed
-
-        print(f"Context updated successfully.")
+        # Optional: Add basic check for success, though upsert might not return useful count
+        # if response.data: # Or check status code if available/needed
+        print(f"Context updated/upserted successfully.")
         return {"message": "Context updated successfully"}
+        # else:
+        #     print(f"WARN: Context update might not have completed as expected. Response: {response}")
+        #     raise HTTPException(status_code=500, detail="Failed to update context, response indicates issue.")
+
     except Exception as e:
-        print(f"Error updating context: {e}")
+        print(f"ERROR (/context POST): Exception updating context: {e}")
         raise HTTPException(status_code=500, detail=f"Could not update context: {e}")
 
-# IMPORTANT: Add authentication/authorization here in a real app!
-# Only allow admins to call this endpoint.
+# Note: Optional /history endpoint remains unchanged if you kept it.
