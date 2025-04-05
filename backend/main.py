@@ -120,7 +120,12 @@ async def ask_question(request: QuestionRequest):
         Answer the following question based *only* on the provided company context.
         If the answer cannot be found in the context, clearly state that you don't have that information based on the provided documents.
 
-        Company Context:
+        # Company Context:
+        # ---
+        # {COMPANY_CONTEXT}
+        # ---
+
+        Current Context:
         ---
         {current_context}
         ---
@@ -134,7 +139,7 @@ async def ask_question(request: QuestionRequest):
 
         # Construct prompt differently if needed, Gemini prefers direct instruction
         # Ensure your prompt structure works well with Gemini
-        prompt = f"""Context: {COMPANY_CONTEXT}\n\nQuestion: {user_question}\n\nAnswer based only on context:"""
+        # prompt = f"""Context: {COMPANY_CONTEXT}\n\nQuestion: {user_question}\n\nAnswer based only on context:"""
 
         response = model.generate_content(prompt)
         ai_answer = response.text.strip()
