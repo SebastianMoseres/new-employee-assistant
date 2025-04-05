@@ -118,7 +118,7 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # --- Streamlit App UI ---
-st.markdown("# 🤖 AI Onboarding Assistant")
+st.markdown("# 🤖 New Employee Assistant")
 st.markdown("### Your Personal Guide to Company Policies")
 st.markdown("Ask questions about **Company Policies** below.")
 st.markdown("*Please be specific for best results.*")
