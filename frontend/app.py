@@ -5,7 +5,7 @@ import os
 
 # --- Page Configuration (MUST be the first Streamlit command) ---
 st.set_page_config(
-    page_title="AI Onboarding Assistant",
+    page_title="New Employee Assistant",
     page_icon="🤖",
     layout="centered",
     initial_sidebar_state="auto"
