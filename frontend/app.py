@@ -137,10 +137,15 @@ st.markdown("""
     
     h1 {
         font-size: 2.5rem;
-        background: linear-gradient(135deg, #ffffff 0%, #a0a0a0 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-bottom: 0.5rem;
+        /* Remove these lines: */
+        /* background: linear-gradient(135deg, #ffffff 0%, #a0a0a0 100%); */
+        /* -webkit-background-clip: text; */
+        /* -webkit-text-fill-color: transparent; */
+
+        /* Just use a solid color: */
+        color: #ffffff;
+        font-weight: 700;
+        margin-bottom: 0.5rem; /* Keep other styling */
     }
     
     h2 {
@@ -216,7 +221,7 @@ if user_question:
     # Get AI answer from backend
     try:
         with st.spinner("Thinking..."):
-            response = requests.post(BACKEND_URL, json={"question": user_question}, timeout=45) # Increased timeout
+            response = requests.post(ASK_ENDPOINT, json={"question": user_question}, timeout=45) # Increased timeout
             response.raise_for_status() # Raise an exception for bad status codes (4xx or 5xx)
 
         ai_response = response.json()
