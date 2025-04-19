@@ -19,7 +19,7 @@ This serves as a demonstration of building a full-stack AI application integrati
 ## Features
 
 *   **Contextual Q&A:** Ask questions in natural language about company policies, tech setup, culture, etc.
-*   **AI-Powered Answers:** Uses Google Gemini (`gemini-1.0-pro`) to generate answers based *only* on the provided internal context document.
+*   **AI-Powered Answers:** Uses Google Gemini (`gemini-1.5-pro`) to generate answers based *only* on the provided internal context document.
 *   **Simple Chat Interface:** Clean and easy-to-use UI built with Streamlit.
 *   **Q&A Logging:** Questions and their corresponding AI answers are logged to a Supabase (PostgreSQL) database for potential review or future analysis.
 
