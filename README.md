@@ -7,9 +7,8 @@ A full-stack web application leveraging AI to answer new employee questions base
 
 **Live Demo:** [https://new-employee-assistant.streamlit.app](https://new-employee-assistant.streamlit.app)
 
-<!-- Add a screenshot or GIF of the app in action here! -->
-<!-- Example: <img src="docs/screenshot.png" alt="App Screenshot" width="600"/> -->
-
+<img src="static/images/Frontend.png" alt="Frontend Website Screenshot" width="600"/>
+<img src="static/images/Online FlowChart & Diagrams Editor - Mermaid Live Editor.png" alt="Flowchart Diagram" width="600"/>
 ## Description
 
 Onboarding new employees involves answering many common questions about company policies, tools, and culture. This project aims to automate and streamline this process by providing an AI-powered assistant that can answer these questions instantly based on a predefined context document.
